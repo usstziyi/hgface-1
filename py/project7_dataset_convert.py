@@ -132,13 +132,12 @@ def demo_hf_to_tensor_dataset():
 
     tokenized = hf_dataset.map(tokenize_fn, batched=True, remove_columns=["text"])
 
-    # 设置为 PyTorch 格式
-    tokenized.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
+    # 提取所有 column 并转为 tensor
+    input_ids = torch.tensor([x["input_ids"] for x in tokenized])
+    attention_mask = torch.tensor([x["attention_mask"] for x in tokenized])
+    labels = torch.tensor([x["label"] for x in tokenized])
 
-    # 提取所有 tensor
-    input_ids = tokenized["input_ids"]
-    attention_mask = tokenized["attention_mask"]
-    labels = tokenized["label"]
+
 
     print(f"input_ids type: {type(input_ids)}, shape: {input_ids.shape}")
     print(f"attention_mask type: {type(attention_mask)}, shape: {attention_mask.shape}")
