@@ -9,7 +9,7 @@ from transformers import TrainingArguments, Trainer
 import torch
 
 # 1. 加载数据
-dataset = load_dataset("imdb")
+dataset = load_dataset("stanfordnlp/imdb")
 # 取小规模数据快速验证
 small_train = dataset["train"].shuffle(seed=42).select(range(2000))
 small_test = dataset["test"].shuffle(seed=42).select(range(500))
@@ -33,10 +33,11 @@ model = AutoModelForSequenceClassification.from_pretrained(
 # 4. 配置训练参数并训练
 training_args = TrainingArguments(
     output_dir="./results",
-    evaluation_strategy="epoch",
+    eval_strategy="epoch", # 每训练完一个 epoch 就在验证集上评估一次
     num_train_epochs=3,
     per_device_train_batch_size=8,
 )
+# 每个设备（GPU/CPU）每步训练用 8 条样本。2000 条数据，每步 8 条 → 每个 epoch 250 步
 
 trainer = Trainer(
     model=model,
