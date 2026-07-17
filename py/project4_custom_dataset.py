@@ -93,15 +93,35 @@ def demo_text_dataset():
     for batch_idx, batch in enumerate(dataloader):
         print(f"\n--- Batch {batch_idx} ---")
         print(f"  input_ids shape: {batch['input_ids'].shape}")       # [batch_size, max_length]
-        print(f"  attention_mask shape: {batch['attention_mask'].shape}")
+        print(f"  attention_mask shape: {batch['attention_mask'].shape}") # [batch_size, max_length]
         print(f"  labels: {batch['label']}")
 
     # 配合模型训练
     from transformers import AutoModelForSequenceClassification
 
+    # LOAD REPORT 的设计逻辑：
+    # ✅ 匹配的参数 → 不显示（静默加载）
+    # ❌ 不匹配的参数 → 显示状态（UNEXPECTED / MISSING）
     model = AutoModelForSequenceClassification.from_pretrained(
         "bert-base-uncased", num_labels=2
     )
+
+    """
+    # 加载过程：
+    预训练权重文件包含：           你的模型需要：
+    ├── bert.* (BERT 参数)         ├── bert.* (BERT 参数)      ✅ 匹配，正常加载
+    ├── cls.predictions.*          └── classifier.*           ← 新任务需要
+    └── cls.seq_relationship.*
+
+    # 结果：
+    # - bert.* 参数：权重文件有，模型也需要 → 正常加载（不显示）
+    # - cls.* 参数：权重文件有，模型不需要 → UNEXPECTED（不加载）
+    # - classifier.* 参数：权重文件没有，模型需要 → MISSING（随机初始化）
+
+    对 UNEXPECTED → 忽略
+    对 MISSING → 训练
+    """
+
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
 
     model.train()
@@ -299,5 +319,5 @@ def demo_clip_dataset():
 
 if __name__ == "__main__":
     demo_text_dataset()
-    demo_image_dataset()
-    demo_clip_dataset()
+    # demo_image_dataset()
+    # demo_clip_dataset()
