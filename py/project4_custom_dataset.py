@@ -247,12 +247,13 @@ class CLIPTripletDataset(Dataset):
     """
     图文配对 Dataset，使用 CLIPProcessor 同时处理图像和文本。
     适用于图文对比学习、图文检索等任务。
+    三元组
     """
 
     def __init__(self, image_urls, captions, processor):
-        self.image_urls = image_urls
-        self.captions = captions
-        self.processor = processor
+        self.image_urls = image_urls  # 图像 URL 列表
+        self.captions = captions  # 对应的文本描述列表
+        self.processor = processor  # CLIP 处理器，用于处理图像和文本
 
     def __len__(self):
         return len(self.image_urls)
@@ -269,7 +270,9 @@ class CLIPTripletDataset(Dataset):
 
         # 用 CLIP processor 处理单条图文对
         inputs = self.processor(
-            text=caption, images=image, return_tensors="pt"
+            text=caption, 
+            images=image, 
+            return_tensors="pt"
         )
 
         return {
@@ -277,8 +280,51 @@ class CLIPTripletDataset(Dataset):
             "attention_mask": inputs["attention_mask"].squeeze(),
             "pixel_values": inputs["pixel_values"].squeeze(),
         }
+        # 这些是 CLIP 模型的输入，用于计算图文相似度
 
+"""
+CLIP = Contrastive Language-Image Pre-training
+全称：对比语言-图像预训练
+CLIP
+├── C: Contrastive（对比）
+├── L: Language（语言）
+├── I: Image（图像）
+└── P: Pre-training（预训练）
 
+openai / clip - vit - base - patch32
+  │       │     │      │       │
+  │       │     │      │       └── patch32: 图像分成 32×32 的小块
+  │       │     │      └── base: 模型大小（Base）
+  │       │     └── vit: Vision Transformer（图像编码器架构）
+  │       └── clip: 模型系列（Contrastive Language-Image Pre-training）
+  └── openai: 发布组织（OpenAI）
+
+vit - Vision Transformer（图像编码器）
+# 图像编码器使用 ViT 架构
+# 将图像切分成小块（patches），像处理文本一样处理图像
+
+输入图像 (224×224×3)
+    ↓
+切成 49 个 patch (每个 32×32)
+    ↓
+[Patch1] [Patch2] [Patch3] ... [Patch49]   ← 每个 patch 展平为向量
+    ↓
+加位置编码 + [CLS] token
+    ↓
+Vision Transformer (12层)
+    ↓
+图像特征向量 (512维)
+    ↓
+    ┌─────────────────┐
+    │  对比学习        │  ← 计算相似度
+    └─────────────────┘
+          ↑
+文本特征向量 (512维)
+    ↑
+Text Transformer (12层)
+    ↑
+文本输入 "a photo of a cat"
+"""
 def demo_clip_dataset():
     print("\n" + "=" * 60)
     print("三、CLIP 图文配对 Dataset 演示")
@@ -286,6 +332,11 @@ def demo_clip_dataset():
 
     from transformers import CLIPProcessor
 
+    # 从 Hugging Face 加载预训练的 CLIP 处理器
+    # CLIPProcessor 同时包含文本 tokenizer 和图像预处理功能
+    # "openai/clip-vit-base-patch32" 是 OpenAI 发布的 CLIP 基础版本
+    # - ViT-B/32: 使用 Vision Transformer Base 模型，patch 大小为 32x32
+    # - 文本编码器：基于 Transformer，最大序列长度 77
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     image_urls = [
@@ -318,6 +369,6 @@ def demo_clip_dataset():
 # ============================================================
 
 if __name__ == "__main__":
-    demo_text_dataset()
+    # demo_text_dataset()
     # demo_image_dataset()
-    # demo_clip_dataset()
+    demo_clip_dataset()
