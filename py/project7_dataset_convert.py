@@ -350,8 +350,8 @@ def demo_full_pipeline():
 
 if __name__ == "__main__":
     demo_hf_to_torch_dataloader()
-    demo_hf_to_torch_custom()
-    demo_hf_to_tensor_dataset()
-    demo_tensor_to_hf()
-    demo_custom_torch_to_hf()
-    demo_full_pipeline()
+    # demo_hf_to_torch_custom()
+    # demo_hf_to_tensor_dataset()
+    # demo_tensor_to_hf()
+    # demo_custom_torch_to_hf()
+    # demo_full_pipeline()
