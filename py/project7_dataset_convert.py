@@ -35,6 +35,7 @@ def demo_hf_to_torch_dataloader():
     print(f"HF Dataset 格式: {tokenized.format}")
     # 设置 PyTorch 格式：告诉 dataset 返回 torch.Tensor
     tokenized.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
+    print(f"features: {tokenized.features}")
 
     print(f"HF Dataset 列: {tokenized.column_names}")
     print(f"HF Dataset 格式: {tokenized.format}")
@@ -271,15 +272,13 @@ def demo_full_pipeline():
         return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=64)
 
     tokenized = hf_dataset.map(tokenize_fn, batched=True, remove_columns=["text"])
-    tokenized.set_format(type="torch")
     print(f"Step 2: 分词完成，列: {tokenized.column_names}")
 
-    # Step 3: 转为 TensorDataset
-    tensor_ds = TensorDataset(
-        tokenized["input_ids"],
-        tokenized["attention_mask"],
-        tokenized["label"],
-    )
+    # Step 3: 转为 TensorDataset（遍历提取 tensor）
+    input_ids = torch.tensor([x["input_ids"] for x in tokenized])
+    attention_mask = torch.tensor([x["attention_mask"] for x in tokenized])
+    labels = torch.tensor([x["label"] for x in tokenized])
+    tensor_ds = TensorDataset(input_ids, attention_mask, labels)
     print(f"Step 3: 转为 TensorDataset，大小: {len(tensor_ds)}")
 
     # Step 4: 用 PyTorch DataLoader 训练
@@ -302,11 +301,10 @@ def demo_full_pipeline():
             )
 
         def forward(self, input_ids, attention_mask):
-            # 简化演示：embedding + flatten + fc
             emb = self.embedding(input_ids)  # [B, 64, 64]
-            # 用 attention_mask 加权
             mask = attention_mask.unsqueeze(-1).float()
-            emb = (emb * mask).sum(dim=1) / mask.sum(dim=1)  # [B, 64]
+            emb = emb * mask  # [B, 64, 64]
+            emb = emb.view(-1, 64 * 64)  # flatten -> [B, 4096]
             return self.fc(emb)
 
     model = SimpleModel()
@@ -354,7 +352,7 @@ def demo_full_pipeline():
 if __name__ == "__main__":
     # demo_hf_to_torch_dataloader()
     # demo_hf_to_torch_custom()
-    demo_hf_to_tensor_dataset()
+    # demo_hf_to_tensor_dataset()
     # demo_tensor_to_hf()
     # demo_custom_torch_to_hf()
-    # demo_full_pipeline()
+    demo_full_pipeline()
