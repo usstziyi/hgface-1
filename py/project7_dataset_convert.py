@@ -23,12 +23,16 @@ def demo_hf_to_torch_dataloader():
     print("=" * 60)
 
     # HuggingFace Dataset 本身就可以直接传给 PyTorch DataLoader
-    dataset = load_dataset("imdb", split="train[:200]")
+    dataset = load_dataset("stanfordnlp/imdb", split="train[:200]")
 
     def tokenize_fn(examples):
         return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=64)
-
+    
+    # 预处理阶段就padding
+    # batched=True 不指定 batch_size 时，默认值是 1000。
+    # 这是 Hugging Face datasets 库的默认行为，源码里写死了 batch_size=1000。
     tokenized = dataset.map(tokenize_fn, batched=True, remove_columns=["text"])
+    print(f"HF Dataset 格式: {tokenized.format}")
     # 设置 PyTorch 格式：告诉 dataset 返回 torch.Tensor
     tokenized.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 
@@ -72,17 +76,17 @@ class HFDatasetWrapper(TorchDataset):
         text = item["text"]
         label = item["label"]
 
-        encoding = self.tokenizer(
+        tokenized = self.tokenizer(
             text,
             padding="max_length",
             truncation=True,
             max_length=self.max_length,
             return_tensors="pt",
-        )
+        )  # 单条样本的 tokenized 数据
 
         return {
-            "input_ids": encoding["input_ids"].squeeze(),
-            "attention_mask": encoding["attention_mask"].squeeze(),
+            "input_ids": tokenized["input_ids"].squeeze(),
+            "attention_mask": tokenized["attention_mask"].squeeze(),
             "label": torch.tensor(label, dtype=torch.long),
         }
 
@@ -92,7 +96,7 @@ def demo_hf_to_torch_custom():
     print("二、HuggingFace Dataset → PyTorch 自定义 Dataset")
     print("=" * 60)
 
-    hf_dataset = load_dataset("imdb", split="train[:100]")
+    hf_dataset = load_dataset("stanfordnlp/imdb", split="train[:100]")
 
     # 包装为 PyTorch Dataset
     torch_dataset = HFDatasetWrapper(hf_dataset, tokenizer, max_length=64)
@@ -121,7 +125,7 @@ def demo_hf_to_tensor_dataset():
     print("三、HuggingFace Dataset → TensorDataset")
     print("=" * 60)
 
-    hf_dataset = load_dataset("imdb", split="train[:100]")
+    hf_dataset = load_dataset("stanfordnlp/imdb", split="train[:100]")
 
     def tokenize_fn(examples):
         return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=64)
@@ -260,7 +264,7 @@ def demo_full_pipeline():
     print("=" * 60)
 
     # Step 1: 从 HF Hub 加载
-    hf_dataset = load_dataset("imdb", split="train[:200]")
+    hf_dataset = load_dataset("stanfordnlp/imdb", split="train[:200]")
     print(f"Step 1: 从 HF Hub 加载 {len(hf_dataset)} 条")
 
     # Step 2: 分词
@@ -349,9 +353,9 @@ def demo_full_pipeline():
 # ============================================================
 
 if __name__ == "__main__":
-    demo_hf_to_torch_dataloader()
+    # demo_hf_to_torch_dataloader()
     # demo_hf_to_torch_custom()
-    # demo_hf_to_tensor_dataset()
+    demo_hf_to_tensor_dataset()
     # demo_tensor_to_hf()
     # demo_custom_torch_to_hf()
     # demo_full_pipeline()
