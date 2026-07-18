@@ -178,8 +178,8 @@ def demo_comparison():
     print("四、TensorDataset vs 自定义 Dataset 对比")
     print("=" * 60)
 
-    X = torch.randn(50, 5)
-    y = torch.randint(0, 2, (50,))
+    X = torch.randn(50, 5) # （50，5）
+    y = torch.randint(0, 2, (50,)) # （50，）
 
     # --- 方式 1：TensorDataset（简单直接） ---
     tensor_ds = TensorDataset(X, y)
@@ -272,8 +272,8 @@ def demo_tips():
 # ============================================================
 
 if __name__ == "__main__":
-    demo_basic()
-    demo_training()
-    demo_multi_input()
-    demo_comparison()
+    # demo_basic()
+    # demo_training()
+    # demo_multi_input()
+    # demo_comparison()
     demo_tips()
