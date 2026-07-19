@@ -23,6 +23,12 @@ def demo_basic_classification():
     print("=" * 60)
 
     # 加载预训练模型和处理器
+    # google/vit-base-patch16-224 模型参数说明:
+    # - google: 模型发布组织 (Google Research)
+    # - vit: Vision Transformer 架构
+    # - base: 模型大小 (base=基础版, 约86M参数; large=大型, 约304M参数)
+    # - patch16: 每个patch的大小为16x16像素 (还有patch32等变体)
+    # - 224: 输入图像分辨率 224x224 像素
     model_name = "google/vit-base-patch16-224"
     
     processor = ViTImageProcessor.from_pretrained(model_name)
@@ -39,17 +45,25 @@ def demo_basic_classification():
     print(f"\n输入图像尺寸: {image.size}")
 
     # 预处理
+    # inputs 包含以下信息：
+    # - pixel_values: 预处理后的图像张量，shape 为 [batch_size, 3, 224, 224]
+    #   经过归一化（ImageNet 均值和标准差）和 resize 到 224x224
     inputs = processor(images=image, return_tensors="pt")
-    print(f"预处理后 pixel_values shape: {inputs.pixel_values.shape}")
+    print(f"预处理后:")
+    for key, value in inputs.items():
+        print(f"{key}: {value.shape}")
     # [1, 3, 224, 224]
 
     # 推理
     with torch.no_grad():
         outputs = model(**inputs)
 
+    print(f"\n输出键: {outputs.keys()}")
     # 获取预测结果
     logits = outputs.logits
-    print(f"\nLogits shape: {logits.shape}")  # [1, 1000]
+    print(f"Logits shape: {logits.shape}")  # [1, 1000]
+
+    return logits
 
     # 获取 Top-5 预测
     probs = torch.softmax(logits, dim=-1)
@@ -261,8 +275,14 @@ def demo_model_comparison():
 # ============================================================
 
 if __name__ == "__main__":
+
+
+    # import inspect
+    # from transformers import ViTForImageClassification
+    # print(inspect.signature(ViTForImageClassification.forward))
+
     demo_basic_classification()
-    demo_feature_extraction()
-    demo_attention_visualization()
-    demo_batch_inference()
-    demo_model_comparison()
+    # demo_feature_extraction()
+    # demo_attention_visualization()
+    # demo_batch_inference()
+    # demo_model_comparison()
