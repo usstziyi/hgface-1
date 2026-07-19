@@ -12,6 +12,8 @@ import torch
 from transformers import ViTImageProcessor, ViTForImageClassification
 from PIL import Image
 import requests
+import matplotlib.pyplot as plt
+import numpy as np
 
 # ============================================================
 # 一、基础图像分类
@@ -99,7 +101,21 @@ def demo_feature_extraction():
     # 方法 1：使用 output_hidden_states 获取所有层的输出
     with torch.no_grad():
         outputs = model(**inputs, output_hidden_states=True) # 默认只有 last_hidden_state
+    """
+        ViT-Base (google/vit-base-patch16-224)
+        │
+        ├── Embedding 层      → hidden_states[0]
+        │   (Patch Embedding + CLS Token + Position Embedding)
+        │
+        ├── Transformer Block 1   → hidden_states[1]
+        ├── Transformer Block 2   → hidden_states[2]
+        ├── Transformer Block 3   → hidden_states[3]
+        ├── ...
+        ├── Transformer Block 11  → hidden_states[11]
+        └── Transformer Block 12  → hidden_states[12]
 
+        总计：1 + 12 = 13 层
+    """
     hidden_states = outputs.hidden_states
     print(f"隐藏层数量: {len(hidden_states)}")  # 13 (1 embedding + 12 transformer)
     print(f"每层 shape: {hidden_states[0].shape}")  # [1, 197, 768]
@@ -164,7 +180,10 @@ def demo_attention_visualization():
     model_name = "google/vit-base-patch16-224"
     
     processor = ViTImageProcessor.from_pretrained(model_name)
-    model = ViTForImageClassification.from_pretrained(model_name)
+    model = ViTForImageClassification.from_pretrained(
+        model_name, 
+        attn_implementation="eager"  # 使用 eager 实现，支持输出注意力权重
+    )
 
     # 加载图像
     url = "http://images.cocodataset.org/val2017/000000039769.jpg"
@@ -180,16 +199,24 @@ def demo_attention_visualization():
     print(f"每层注意力 shape: {attentions[0].shape}")
     # [1, 12, 197, 197]
     # 1 = batch, 12 = heads, 197 = seq_len, 197 = seq_len
+    """
+        attentions[0].shape  # [1, 12, 197, 197]
+                                ↑   ↑   ↑    ↑
+                                │   │   │    └─ Key 的序列长度
+                                │   │   └─ Query 的序列长度
+                                │   └─ 注意力头数 (12 heads)
+                                └─ 批次大小
+    """
 
     # 分析 CLS token 的注意力（CLS 关注哪些 patch）
-    cls_attention = attentions[-1][0]  # 最后一层 [12, 197, 197]
-    cls_to_patches = cls_attention[:, 0, 1:]  # CLS 对所有 patch 的注意力 [12, 196]
+    cls_attention = attentions[-1][0]  # 最后一层的注意力 [12, 197, 197]
+    cls_to_patches = cls_attention[:, 0, 1:]  # 最后一层 CLS token 对所有 patch 的注意力 [12, 196]
     
     print(f"\nCLS token 注意力分析:")
     print(f"  注意力头数: {cls_to_patches.shape[0]}")  # 12
     print(f"  关注的 patch 数: {cls_to_patches.shape[1]}")  # 196
 
-    # 平均所有头的注意力
+    # 平均所有头的注意力:最后一层cls token对所有patch的注意力
     avg_attention = cls_to_patches.mean(dim=0)  # [196]
     print(f"  平均注意力 shape: {avg_attention.shape}")
     
@@ -209,6 +236,63 @@ def demo_attention_visualization():
     print("  - 将 196 个注意力值 reshape 为 14x14 的 heatmap")
     print("  - 叠加到原图上可以看到模型关注的区域")
     print("  - 类似 Grad-CAM 的效果")
+
+    # ==================== 可视化注意力图 ====================
+    print("\n正在生成注意力可视化...")
+
+    # 平均所有头的注意力:最后一层cls token对所有patch的注意力
+    # 1. 将注意力 reshape 为 14x14 的 heatmap
+    attention_map = avg_attention.reshape(14, 14).numpy()
+
+    # 2. 创建可视化
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    # 原图
+    axes[0].imshow(image)
+    axes[0].set_title('original image')
+    axes[0].axis('off')
+
+    # 注意力 heatmap
+    im = axes[1].imshow(attention_map, cmap='viridis')
+    axes[1].set_title('CLS token attention heatmap (14x14)')
+    axes[1].set_xlabel('Patch col')
+    axes[1].set_ylabel('Patch row')
+    plt.colorbar(im, ax=axes[1])
+
+    # 注意力叠加到原图
+    axes[2].imshow(image)  # 原图
+    # 将 heatmap resize 到原图大小
+    attention_resized = np.array(Image.fromarray(attention_map).resize(
+        image.size, Image.BILINEAR
+    ))
+    # 归一化到 0-1
+    attention_resized = (attention_resized - attention_resized.min()) / \
+                        (attention_resized.max() - attention_resized.min())
+    # 叠加 heatmap
+    axes[2].imshow(attention_resized, cmap='jet', alpha=0.5) # 叠加注意力 heatmap
+    axes[2].set_title('CLS token attention overlay')
+    axes[2].axis('off')
+
+    plt.tight_layout()
+    plt.savefig('attention_visualization.png', dpi=150, bbox_inches='tight')
+    print("图片已保存: attention_visualization.png")
+
+    # 3. 可视化不同注意力头
+    fig2, axes2 = plt.subplots(3, 4, figsize=(16, 12))
+    axes2 = axes2.flatten()
+
+    for head_idx in range(12):
+        head_attention = cls_to_patches[head_idx].reshape(14, 14).numpy()
+        axes2[head_idx].imshow(head_attention, cmap='viridis')
+        axes2[head_idx].set_title(f'Head {head_idx + 1}')
+        axes2[head_idx].axis('off')
+
+    plt.suptitle('CLS token attention distribution for each head', fontsize=14)
+    plt.tight_layout()
+    plt.savefig('attention_heads.png', dpi=150, bbox_inches='tight')
+    print("图片已保存: attention_heads.png")
+
+    
 
 
 # ============================================================
@@ -302,7 +386,7 @@ if __name__ == "__main__":
     # print(inspect.signature(ViTForImageClassification.forward))
 
     # demo_basic_classification()
-    demo_feature_extraction()
-    # demo_attention_visualization()
+    # demo_feature_extraction()
+    demo_attention_visualization()
     # demo_batch_inference()
     # demo_model_comparison()

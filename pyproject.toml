@@ -12,6 +12,7 @@ dependencies = [
     "pillow>=10.0.0",
     "requests>=2.31.0",
     "torchvision>=0.28.0",
+    "matplotlib>=3.10.9",
 ]
 
 [dependency-groups]
