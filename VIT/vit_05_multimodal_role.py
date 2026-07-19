@@ -356,10 +356,10 @@ def demo_practical_comparison():
 if __name__ == "__main__":
     # demo_clip_vit()
     # demo_blip_vit()
-    demo_blip_vit_run()
+    # demo_blip_vit_run()
     # demo_llava_vit()
     # demo_vit_role_summary()
-    # demo_practical_comparison()
+    demo_practical_comparison()
     
     # print("\n" + "=" * 60)
     # print("总结")
