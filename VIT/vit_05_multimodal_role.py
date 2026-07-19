@@ -170,7 +170,7 @@ def demo_blip_vit_run():
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
     # 加载图像
-    image_path = "VIT/data/cat.jpg"
+    image_path = "VIT/data/dog.png"
     image = Image.open(image_path).convert("RGB")
 
     # 无条件生成描述
