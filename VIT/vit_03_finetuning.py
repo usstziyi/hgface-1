@@ -341,10 +341,10 @@ def demo_lora_finetuning(train_dataset, test_dataset, num_labels):
     lora_config = LoraConfig(
         r=16,  # LoRA 秩
         lora_alpha=32,  # 缩放系数
-        target_modules=["query", "value"],  # 对 Q 和 V 应用 LoRA
+        target_modules=["q_proj", "v_proj"],  # 对 Q 和 V 应用 LoRA（新版本命名）
         lora_dropout=0.1,
         bias="none",
-        task_type=TaskType.IMAGE_CLASSIFICATION,
+        task_type=TaskType.FEATURE_EXTRACTION,
     )
 
     # 创建 LoRA 模型
@@ -359,7 +359,13 @@ def demo_lora_finetuning(train_dataset, test_dataset, num_labels):
     print(f"可训练比例: {trainable_params / total_params:.4%}")
     # LoRA 只增加很少的参数
 
+    # 打印可训练参数信息
     model.print_trainable_parameters()
+
+    print("\n模型结构:")
+    print(model)
+
+    
 
     training_args = TrainingArguments(
         output_dir="./vit_lora_finetuned",
@@ -368,7 +374,7 @@ def demo_lora_finetuning(train_dataset, test_dataset, num_labels):
         per_device_eval_batch_size=8,
         learning_rate=1e-4,
         eval_strategy="epoch",
-        logging_steps=50,
+        logging_steps=1,
     )
 
     def compute_metrics(eval_pred):
@@ -419,10 +425,10 @@ if __name__ == "__main__":
     # demo_feature_extraction_mode(train_dataset, test_dataset, num_labels)
     
     # 方式 3：部分微调（平衡）
-    demo_partial_finetuning(train_dataset, test_dataset, num_labels)
+    # demo_partial_finetuning(train_dataset, test_dataset, num_labels)
     
     # 方式 4：LoRA 微调（参数高效）
-    # demo_lora_finetuning(train_dataset, test_dataset, num_labels)
+    demo_lora_finetuning(train_dataset, test_dataset, num_labels)
     
     print("\n" + "=" * 60)
     print("微调方式对比")
