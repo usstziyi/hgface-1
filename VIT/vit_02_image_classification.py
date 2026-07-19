@@ -401,5 +401,5 @@ if __name__ == "__main__":
     # demo_basic_classification()
     # demo_feature_extraction()
     # demo_attention_visualization()
-    demo_batch_inference()
-    # demo_model_comparison()
+    # demo_batch_inference()
+    demo_model_comparison()
