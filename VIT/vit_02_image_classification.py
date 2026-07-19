@@ -63,16 +63,18 @@ def demo_basic_classification():
     logits = outputs.logits
     print(f"Logits shape: {logits.shape}")  # [1, 1000]
 
-    return logits
+
 
     # 获取 Top-5 预测
-    probs = torch.softmax(logits, dim=-1)
-    top5_probs, top5_indices = torch.topk(probs, 5, dim=-1)
+    probs = torch.softmax(logits, dim=-1) # [1, 1000]
+    top5_probs, top5_indices = torch.topk(probs, 5, dim=-1) # [1, 5]
+    print(f"Top-5 概率 shape: {top5_probs.shape}")
+    print(f"Top-5 索引 shape: {top5_indices.shape}")
 
     print("\nTop-5 预测:")
     for i, (prob, idx) in enumerate(zip(top5_probs[0], top5_indices[0])):
         label = model.config.id2label[idx.item()]
-        print(f"  #{i+1} {label}: {prob.item():.4f}")
+        print(f"  #{i+1} {idx.item()}-{label}: {prob.item():.4f}")
 
 
 # ============================================================
@@ -96,7 +98,7 @@ def demo_feature_extraction():
 
     # 方法 1：使用 output_hidden_states 获取所有层的输出
     with torch.no_grad():
-        outputs = model(**inputs, output_hidden_states=True)
+        outputs = model(**inputs, output_hidden_states=True) # 默认只有 last_hidden_state
 
     hidden_states = outputs.hidden_states
     print(f"隐藏层数量: {len(hidden_states)}")  # 13 (1 embedding + 12 transformer)
@@ -110,6 +112,24 @@ def demo_feature_extraction():
 
     # 方法 2：使用 vit 模型直接获取
     from transformers import ViTModel
+
+    """
+        预训练模型 (google/vit-base-patch16-224)
+        ├── vit (ViT 主体)
+        ├── classifier (分类头)  ← 有这些权重
+        └── pooler (池化层)      ← 没有这个
+
+        ViTModel 期望的结构
+        ├── vit (ViT 主体)
+        └── pooler              ← 需要这个，但预训练模型没有
+
+        Key                 | Status     |
+        --------------------+------------+-
+        classifier.weight   | UNEXPECTED |
+        classifier.bias     | UNEXPECTED |
+        pooler.dense.bias   | MISSING    |
+        pooler.dense.weight | MISSING    |
+    """
     
     vit_model = ViTModel.from_pretrained(model_name)
     
@@ -281,8 +301,8 @@ if __name__ == "__main__":
     # from transformers import ViTForImageClassification
     # print(inspect.signature(ViTForImageClassification.forward))
 
-    demo_basic_classification()
-    # demo_feature_extraction()
+    # demo_basic_classification()
+    demo_feature_extraction()
     # demo_attention_visualization()
     # demo_batch_inference()
     # demo_model_comparison()
