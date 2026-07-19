@@ -30,7 +30,7 @@ def prepare_data():
     print("=" * 60)
 
     # 加载 food101 数据集（101 类食物，每类 1000 张）
-    dataset = load_dataset("food101")
+    dataset = load_dataset("ethz/food101")
     print(f"数据集: {dataset}")
     print(f"训练集: {len(dataset['train'])}")
     print(f"测试集: {len(dataset['validation'])}")
@@ -413,7 +413,7 @@ if __name__ == "__main__":
     # demo_partial_finetuning(train_dataset, test_dataset, num_labels)
     
     # 方式 4：LoRA 微调（参数高效）
-    demo_lora_finetuning(train_dataset, test_dataset, num_labels)
+    # demo_lora_finetuning(train_dataset, test_dataset, num_labels)
     
     print("\n" + "=" * 60)
     print("微调方式对比")
