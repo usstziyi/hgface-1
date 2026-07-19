@@ -251,10 +251,17 @@ def demo_partial_finetuning(train_dataset, test_dataset, num_labels):
 
     # 解冻最后 3 层 transformer + 分类头
     num_layers_to_unfreeze = 3
+    # num_hidden_layers 只计算 transformer encoder 层的数量，embedding 层和分类头不包含在内。
     total_layers = model.config.num_hidden_layers  # 12
-    
+
+    # 调试：打印模型结构，确认正确的属性路径
+    print("\n模型结构:")
+    print(model)
+
+    # 解冻最后 3 层 transformer 层的参数
+    # 注意：新版本 transformers 使用 model.vit.layers，旧版本使用 model.vit.encoder.layer
     for i in range(total_layers - num_layers_to_unfreeze, total_layers):
-        for param in model.vit.encoder.layer[i].parameters():
+        for param in model.vit.layers[i].parameters():
             param.requires_grad = True
 
     # 解冻分类头
@@ -277,7 +284,7 @@ def demo_partial_finetuning(train_dataset, test_dataset, num_labels):
         per_device_eval_batch_size=8,
         learning_rate=5e-5,
         eval_strategy="epoch",
-        logging_steps=50,
+        logging_steps=1,
     )
 
     def compute_metrics(eval_pred):
