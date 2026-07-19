@@ -309,14 +309,25 @@ def demo_batch_inference():
     processor = ViTImageProcessor.from_pretrained(model_name)
     model = ViTForImageClassification.from_pretrained(model_name)
 
-    # 多张图像
-    urls = [
-        "http://images.cocodataset.org/val2017/000000039769.jpg",  # 猫
-        "http://images.cocodataset.org/val2017/000000084327.jpg",  # 街道
+    # 从 VIT/data 目录加载图片
+    import os
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    image_files = [
+        os.path.join(data_dir, "cat.jpg"),
+        os.path.join(data_dir, "dog.png"),
     ]
     
-    images = [Image.open(requests.get(url, stream=True).raw).convert("RGB") for url in urls]
-    print(f"图像数量: {len(images)}")
+    images = []
+    for img_path in image_files:
+        try:
+            img = Image.open(img_path).convert("RGB")
+            images.append(img)
+            print(f"成功加载: {img_path}")
+        except Exception as e:
+            print(f"跳过 {img_path}: {e}")
+    
+    print(f"成功加载图像数量: {len(images)}")
+
 
     # 批量预处理
     inputs = processor(images=images, return_tensors="pt")
@@ -326,15 +337,17 @@ def demo_batch_inference():
     with torch.no_grad():
         outputs = model(**inputs)
 
-    logits = outputs.logits
-    probs = torch.softmax(logits, dim=-1)
+    logits = outputs.logits # [2, 1000]
+    print(f"logits shape: {logits.shape}")
+    probs = torch.softmax(logits, dim=-1) # [2, 1000]
+    print(f"probs shape: {probs.shape}")
     
     # 每张图像的 Top-1 预测
-    for i, (url, prob) in enumerate(zip(urls, probs)):
-        top_idx = torch.argmax(prob).item()
-        top_prob = prob[top_idx].item()
-        label = model.config.id2label[top_idx]
-        print(f"\n图像 {i+1}: {url}")
+    for i, (img_path, prob) in enumerate(zip(image_files, probs)):
+        top_idx = torch.argmax(prob).item() # 取概率最大的类别
+        top_prob = prob[top_idx].item() # 取概率最大的类别概率
+        label = model.config.id2label[top_idx] # 取概率最大的类别标签
+        print(f"\n图像 {i+1}: {img_path}")
         print(f"  预测: {label} ({top_prob:.4f})")
 
 
@@ -387,6 +400,6 @@ if __name__ == "__main__":
 
     # demo_basic_classification()
     # demo_feature_extraction()
-    demo_attention_visualization()
-    # demo_batch_inference()
+    # demo_attention_visualization()
+    demo_batch_inference()
     # demo_model_comparison()
