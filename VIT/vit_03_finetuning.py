@@ -189,6 +189,7 @@ def demo_feature_extraction_mode(train_dataset, test_dataset, num_labels):
     print(f"可训练比例: {trainable_params / total_params:.2%}")
     # 只有分类头 (~768 * 101) 是可训练的
 
+
     # 训练参数（使用更大的学习率，因为只有分类头在训练）
     training_args = TrainingArguments(
         output_dir="./vit_feature_extraction",
@@ -197,7 +198,7 @@ def demo_feature_extraction_mode(train_dataset, test_dataset, num_labels):
         per_device_eval_batch_size=16,
         learning_rate=1e-3,  # 更大的学习率
         eval_strategy="epoch",
-        logging_steps=50,
+        logging_steps=1,
     )
 
     def compute_metrics(eval_pred):
@@ -405,10 +406,10 @@ if __name__ == "__main__":
     # 选择微调方式（取消注释运行）
     
     # 方式 1：全量微调（最慢，精度最高）
-    demo_full_finetuning(train_dataset, test_dataset, num_labels)
+    # demo_full_finetuning(train_dataset, test_dataset, num_labels)
     
     # 方式 2：特征提取（最快，精度一般）
-    # demo_feature_extraction_mode(train_dataset, test_dataset, num_labels)
+    demo_feature_extraction_mode(train_dataset, test_dataset, num_labels)
     
     # 方式 3：部分微调（平衡）
     # demo_partial_finetuning(train_dataset, test_dataset, num_labels)

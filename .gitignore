@@ -27,4 +27,4 @@ openbci-gui/
 tempCodeRunnerFile.py
 
 # vit_finetuned_full/
-vit_finetuned_full/
+vit_*/
