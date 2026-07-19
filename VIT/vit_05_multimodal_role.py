@@ -67,6 +67,7 @@ def demo_clip_vit():
     print(f"\n投影层:")
     print(f"  视觉投影: {model.visual_projection}")
     print(f"  文本投影: {model.text_projection}")
+
     
     # 测试图像编码
     url = "http://images.cocodataset.org/val2017/000000039769.jpg"
@@ -94,6 +95,8 @@ def demo_clip_vit():
 
 # ============================================================
 # 二、BLIP 中的 ViT
+# BLIP（Bootstrapping Language-Image Pre-training）是由 Salesforce Research 团队开发的多模态视觉-语言预训练模型。
+# blip-image-captioning-base 是其在 图像描述生成（Image Captioning） 任务上的基础版本，能够自动为图像生成准确、自然的文字描述（即"看图说话"）。
 # ============================================================
 
 def demo_blip_vit():
@@ -157,7 +160,33 @@ def demo_blip_vit():
     print("  - 压缩后的 token 与文本一起输入解码器")
     print("  - 生成图像描述或回答视觉问题")
 
+def demo_blip_vit_run():
+    from transformers import BlipProcessor, BlipForConditionalGeneration
+    from PIL import Image
+    import requests
 
+    # 加载模型和处理器
+    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+
+    # 加载图像
+    image_path = "VIT/data/cat.jpg"
+    image = Image.open(image_path).convert("RGB")
+
+    # 无条件生成描述
+    inputs = processor(image, return_tensors="pt")
+    out = model.generate(**inputs, max_new_tokens=50)
+    caption = processor.decode(out[0], skip_special_tokens=True)
+    print("************************************************")
+    print(caption)  # 例如: "two cats sleeping on a couch"
+
+    # 条件生成（给定提示）
+    text = "a photography of"
+    inputs = processor(image, text, return_tensors="pt")
+    out = model.generate(**inputs, max_new_tokens=50)
+    caption = processor.decode(out[0], skip_special_tokens=True)
+    print(caption)  # 例如: "a photography of two cats on a couch"
+    print("************************************************")
 # ============================================================
 # 三、LLaVA 中的 ViT
 # ============================================================
@@ -240,7 +269,6 @@ def demo_llava_vit():
     print("  - 与文本 token 拼接输入 LLM")
     print("  - LLM 基于视觉+文本信息生成回答")
 
-
 # ============================================================
 # 四、ViT 在多模态中的关键作用
 # ============================================================
@@ -319,36 +347,39 @@ def demo_practical_comparison():
     print("  - CLIP 预训练的 ViT 可能有更好的语义理解")
 
 
+
+
 # ============================================================
 # 运行
 # ============================================================
 
 if __name__ == "__main__":
-    demo_clip_vit()
-    demo_blip_vit()
-    demo_llava_vit()
-    demo_vit_role_summary()
-    demo_practical_comparison()
+    # demo_clip_vit()
+    # demo_blip_vit()
+    demo_blip_vit_run()
+    # demo_llava_vit()
+    # demo_vit_role_summary()
+    # demo_practical_comparison()
     
-    print("\n" + "=" * 60)
-    print("总结")
-    print("=" * 60)
-    print("""
-    ViT 在多模态中的地位：
+    # print("\n" + "=" * 60)
+    # print("总结")
+    # print("=" * 60)
+    # print("""
+    # ViT 在多模态中的地位：
     
-    1. ViT 是多模态模型的"眼睛"
-       - 负责将图像转换为模型可理解的 token
+    # 1. ViT 是多模态模型的"眼睛"
+    #    - 负责将图像转换为模型可理解的 token
     
-    2. ViT 的质量决定多模态模型的上限
-       - 视觉特征越好，多模态理解越强
+    # 2. ViT 的质量决定多模态模型的上限
+    #    - 视觉特征越好，多模态理解越强
     
-    3. 选择合适的 ViT 很重要
-       - CLIP ViT: 适合需要图文对齐的任务
-       - DINOv2: 适合纯视觉特征提取
-       - Swin: 适合需要多尺度特征的任务
+    # 3. 选择合适的 ViT 很重要
+    #    - CLIP ViT: 适合需要图文对齐的任务
+    #    - DINOv2: 适合纯视觉特征提取
+    #    - Swin: 适合需要多尺度特征的任务
     
-    4. 未来趋势
-       - 更大的 ViT（ViT-G, ViT-e）
-       - 更高效的 ViT（Swin, FastViT）
-       - 更好的预训练方法（MAE, DINOv2）
-    """)
+    # 4. 未来趋势
+    #    - 更大的 ViT（ViT-G, ViT-e）
+    #    - 更高效的 ViT（Swin, FastViT）
+    #    - 更好的预训练方法（MAE, DINOv2）
+    # """)
