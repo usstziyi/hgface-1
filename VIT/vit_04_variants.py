@@ -15,6 +15,8 @@ ViT 的改进版本：
 
 import torch
 from transformers import (
+    AutoImageProcessor,
+    AutoModelForImageClassification,
     ViTImageProcessor,
     ViTForImageClassification,
     SwinForImageClassification,
@@ -45,8 +47,8 @@ def demo_deit():
     model_name = "facebook/deit-base-distilled-patch16-224"
     
     try:
-        processor = ViTImageProcessor.from_pretrained(model_name)
-        model = ViTForImageClassification.from_pretrained(model_name)
+        processor = AutoImageProcessor.from_pretrained(model_name)
+        model = AutoModelForImageClassification.from_pretrained(model_name)
         
         print(f"模型: {model_name}")
         print(f"参数量: {sum(p.numel() for p in model.parameters()) / 1e6:.1f}M")
@@ -282,13 +284,36 @@ def demo_comparison():
     print(comparison)
 
 
+def demo_dinov2_run():
+    from transformers import AutoImageProcessor, AutoModel
+    from PIL import Image
+    import requests
+
+    # 一张示例图片
+    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+    image = Image.open(requests.get(url, stream=True).raw)
+
+    # 加载处理器和模型
+    processor = AutoImageProcessor.from_pretrained("facebook/dinov2-small")
+    model = AutoModel.from_pretrained("facebook/dinov2-small")
+
+    # 提取特征
+    inputs = processor(images=image, return_tensors="pt")
+    outputs = model(**inputs)
+    # 取 [CLS] token 作为整张图的特征向量
+    image_features = outputs.last_hidden_state[:, 0, :] 
+
+    print(image_features.shape) # torch.Size([1, 384])
+
+
 # ============================================================
 # 运行
 # ============================================================
 
 if __name__ == "__main__":
-    demo_deit()
-    demo_swin_transformer()
-    demo_swin_variants()
-    demo_dinov2()
-    demo_comparison()
+    # demo_deit()
+    # demo_swin_transformer()
+    # demo_swin_variants()
+    # demo_dinov2()
+    demo_dinov2_run()
+    # demo_comparison()
