@@ -409,10 +409,10 @@ if __name__ == "__main__":
     # demo_full_finetuning(train_dataset, test_dataset, num_labels)
     
     # 方式 2：特征提取（最快，精度一般）
-    demo_feature_extraction_mode(train_dataset, test_dataset, num_labels)
+    # demo_feature_extraction_mode(train_dataset, test_dataset, num_labels)
     
     # 方式 3：部分微调（平衡）
-    # demo_partial_finetuning(train_dataset, test_dataset, num_labels)
+    demo_partial_finetuning(train_dataset, test_dataset, num_labels)
     
     # 方式 4：LoRA 微调（参数高效）
     # demo_lora_finetuning(train_dataset, test_dataset, num_labels)
