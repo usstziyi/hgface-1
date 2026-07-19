@@ -93,7 +93,7 @@ def demo_full_finetuning(train_dataset, test_dataset, num_labels):
     # 加载预训练模型，修改分类头
     model = ViTForImageClassification.from_pretrained(
         model_name,
-        num_labels=num_labels,
+        num_labels=num_labels, # 类别数
         ignore_mismatched_sizes=True,  # 允许分类头大小不匹配
     )
 
@@ -109,11 +109,12 @@ def demo_full_finetuning(train_dataset, test_dataset, num_labels):
         per_device_eval_batch_size=8,
         learning_rate=2e-5,
         weight_decay=0.01,
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        logging_steps=50,
-        load_best_model_at_end=True,
-        metric_for_best_model="accuracy",
+        eval_strategy="epoch", # 每训练完一个 epoch 就在验证集上评估一次
+        save_strategy="epoch", # 每训练完一个 epoch 就保存一次模型
+        # save_strategy="best", # 仅保存最佳模型
+        logging_steps=1,
+        load_best_model_at_end=True, # 自动加载最佳模型
+        metric_for_best_model="accuracy", # 根据验证集准确率选择最佳模型
     )
 
     # 定义评估指标
@@ -404,7 +405,7 @@ if __name__ == "__main__":
     # 选择微调方式（取消注释运行）
     
     # 方式 1：全量微调（最慢，精度最高）
-    # demo_full_finetuning(train_dataset, test_dataset, num_labels)
+    demo_full_finetuning(train_dataset, test_dataset, num_labels)
     
     # 方式 2：特征提取（最快，精度一般）
     # demo_feature_extraction_mode(train_dataset, test_dataset, num_labels)
