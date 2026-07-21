@@ -185,7 +185,8 @@ def demo_feature_extraction():
     inputs = processor(images=image, return_tensors="pt")
     with torch.no_grad():
         # 仅提取图像特征
-        image_features = model.get_image_features(**inputs)
+        outputs = model.get_image_features(**inputs)
+    image_features = outputs.pooler_output # 取 CLS token 的最后一层特征
     print(f"图像特征 shape: {image_features.shape}")  # [1, 512]
 
     # 方法 2：只使用视觉编码器
@@ -205,10 +206,11 @@ def demo_feature_extraction():
     # 文本特征提取
     text_inputs = processor(text=["a photo of a cat"], return_tensors="pt")
     with torch.no_grad():
-        text_features = model.get_text_features(**text_inputs)
+        outputs = model.get_text_features(**text_inputs)
+        text_features = outputs.pooler_output # 取 CLS token 的最后一层特征
     print(f"\n文本特征 shape: {text_features.shape}")  # [1, 512]
 
-    # 特征归一化（CLIP 内部会做）
+    # 特征归一化（CLIP 内部会做），此处已经归一化了
     image_features_norm = F.normalize(image_features, dim=-1)
     text_features_norm = F.normalize(text_features, dim=-1)
     similarity = (image_features_norm @ text_features_norm.T).item()
