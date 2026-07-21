@@ -108,14 +108,15 @@ def demo_build_index():
     index = ImageIndex(model, processor)
 
     # 模拟一个图像集合（使用 COCO 数据集的多张图像）
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     image_data = [
         {
-            "url": "http://images.cocodataset.org/val2017/000000039769.jpg",
+            "url": os.path.join(data_dir, "cat.jpg"),
             "description": "cats on a couch",
             "id": "img_001",
         },
         {
-            "url": "http://images.cocodataset.org/val2017/000000084327.jpg",
+            "url": os.path.join(data_dir, "dog.png"),
             "description": "city street",
             "id": "img_002",
         },
@@ -124,7 +125,7 @@ def demo_build_index():
     # 下载并添加图像
     for data in image_data:
         print(f"  添加图像: {data['description']}...")
-        image = Image.open(requests.get(data["url"], stream=True).raw)
+        image = Image.open(data["url"])
         index.add_image(image, metadata=data)
 
     # 也可以用多张随机图像模拟大规模数据
@@ -176,10 +177,9 @@ def demo_image_to_image_search(index):
     print("=" * 60)
 
     # 用一张猫的图片搜索相似图像
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    query_image = Image.open(requests.get(url, stream=True).raw)
+    query_image = Image.open(os.path.join(data_dir, "cat.jpg"))
 
-    print(f"查询图像: {url}")
+    print(f"查询图像: {os.path.join(data_dir, 'cat.jpg')}")
     results = index.search_by_image(query_image, top_k=5)
     for rank, r in enumerate(results):
         print(f"  #{rank+1} [score={r['score']:.4f}] {r['metadata']['description']}")
@@ -199,15 +199,16 @@ def demo_evaluation():
 
     # 构建一个小型评估数据集
     # 每个图像有一个对应的文本描述（ground truth）
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     eval_data = [
-        ("http://images.cocodataset.org/val2017/000000039769.jpg", "cats on couch"),
-        ("http://images.cocodataset.org/val2017/000000084327.jpg", "city street scene"),
+        (os.path.join(data_dir, "cat.jpg"), "cats on couch"),
+        (os.path.join(data_dir, "dog.png"), "city street scene"),
     ]
 
     # 构建索引
     index = ImageIndex(model, processor)
     for url, desc in eval_data:
-        image = Image.open(requests.get(url, stream=True).raw)
+        image = Image.open(url)
         index.add_image(image, metadata={"description": desc, "url": url})
 
     # 添加干扰图像

@@ -17,6 +17,7 @@ from transformers import (
     BlipForConditionalGeneration,
     BlipForQuestionAnswering,
 )
+import os
 from PIL import Image
 import requests
 
@@ -32,8 +33,9 @@ def demo_image_captioning():
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(requests.get(url, stream=True).raw)
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    url = os.path.join(data_dir, "cat.jpg")
+    image = Image.open(url)
 
     # --- 无条件描述生成 ---
     # 使用文本前缀引导生成
@@ -88,9 +90,11 @@ def demo_vqa():
 
     processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-capfilt-large")
     model = BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-capfilt-large")
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
 
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(requests.get(url, stream=True).raw)
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    url = os.path.join(data_dir, "cat.jpg")
+    image = Image.open(url)
 
     # 不同类型的问题
     questions = [
@@ -125,9 +129,11 @@ def demo_blip_large():
     ]:
         processor = BlipProcessor.from_pretrained(model_name)
         model = BlipForConditionalGeneration.from_pretrained(model_name)
-
-        url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-        image = Image.open(requests.get(url, stream=True).raw)
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        
+        
+        url = os.path.join(data_dir, "cat.jpg")
+        image = Image.open(url)
 
         inputs = processor(images=image, return_tensors="pt")
         generated_ids = model.generate(**inputs, max_length=50)
@@ -151,11 +157,12 @@ def demo_batch_processing():
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     urls = [
-        "http://images.cocodataset.org/val2017/000000039769.jpg",
-        "http://images.cocodataset.org/val2017/000000084327.jpg",
+        os.path.join(data_dir, "cat.jpg"),
+        os.path.join(data_dir, "dog.png"),
     ]
-    images = [Image.open(requests.get(url, stream=True).raw) for url in urls]
+    images = [Image.open(url) for url in urls]
 
     # 逐张处理（BLIP 不直接支持 batch generate）
     for i, (url, image) in enumerate(zip(urls, images)):

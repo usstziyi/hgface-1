@@ -30,9 +30,9 @@ def demo_clip_embeddings():
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     # 加载图像
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(requests.get(url, stream=True).raw)
+    image = Image.open(os.path.join(data_dir, "cat.jpg"))
 
     # 准备输入
     inputs = processor(
@@ -177,9 +177,9 @@ def demo_feature_extraction():
 
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(requests.get(url, stream=True).raw)
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    image_file = os.path.join(data_dir, "cat.jpg")
+    image = Image.open(image_file)
 
     # 方法 1：通过 processor + model
     inputs = processor(images=image, return_tensors="pt")
@@ -230,16 +230,18 @@ def demo_similarity_matrix():
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     # 3 张图像
-    urls = [
-        "http://images.cocodataset.org/val2017/000000039769.jpg",
-        "http://images.cocodataset.org/val2017/000000084327.jpg",
+    import os
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    image_files = [
+        os.path.join(data_dir, "cat.jpg"),
+        os.path.join(data_dir, "dog.png"),
     ]
-    images = [Image.open(requests.get(url, stream=True).raw) for url in urls]
+    images = [Image.open(image_file) for image_file in image_files]
 
     # 3 条文本描述
     texts = [
         "a photo of cats",
-        "a photo of a city street",
+        "a photo of a dog",
         "a photo of a delicious meal",
     ]
 
@@ -248,10 +250,11 @@ def demo_similarity_matrix():
     text_inputs = processor(text=texts, return_tensors="pt", padding=True)
 
     with torch.no_grad():
-        image_features = model.get_image_features(**image_inputs)
-        text_features = model.get_text_features(**text_inputs)
+        # 此时还没有归一化，需要后续归一化计算
+        image_features = model.get_image_features(**image_inputs).pooler_output
+        text_features = model.get_text_features(**text_inputs).pooler_output
 
-    # 归一化
+    # 归一化特征
     image_features = F.normalize(image_features, dim=-1)
     text_features = F.normalize(text_features, dim=-1)
 
@@ -260,13 +263,13 @@ def demo_similarity_matrix():
     print(f"相似度矩阵 shape: {similarity_matrix.shape}")  # [2, 3]
 
     print("\n相似度矩阵:")
-    print(f"{'':20}", end="")
+    print(f"{'':30}", end="")
     for t in texts:
-        print(f"{t[:15]:15}", end="")
+        print(f"{t[:20]:20}", end="")
     print()
 
-    for i, url in enumerate(urls):
-        print(f"{url[:18]:20}", end="")
+    for i, image_file in enumerate(image_files):
+        print(f"{image_file[:30]:30}", end="")
         for j in range(len(texts)):
             print(f"{similarity_matrix[i, j].item():.4f}       ", end="")
         print()
@@ -286,11 +289,14 @@ def demo_prompt_engineering():
     print("五、CLIP Prompt Engineering")
     print("=" * 60)
 
+    import os
+
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    image_file = os.path.join(data_dir, "cat.jpg")
+    image = Image.open(image_file)
+
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(requests.get(url, stream=True).raw)
 
     # 不同的 prompt 模板会影响分类效果
     class_names = ["cat", "dog", "car", "bird"]
@@ -312,6 +318,7 @@ def demo_prompt_engineering():
     prompts_ensemble = []
     for c in class_names:
         for t in templates:
+            # t.format(c) 使用 Python 的字符串格式化方法，将模板 t 中的 {} 替换为类别名 c
             prompts_ensemble.append(t.format(c))
 
     print(f"简单 prompt: {prompts_simple}")
@@ -322,16 +329,20 @@ def demo_prompt_engineering():
         inputs = processor(text=prompts, images=image, return_tensors="pt", padding=True)
         with torch.no_grad():
             outputs = model(**inputs)
-            logits = outputs.logits_per_image
+            logits = outputs.logits_per_image  # 图片对文字的相似度
 
         if name == "集成":
             # 集成：对每个类别的多个 prompt 取平均
             logits = logits.reshape(len(class_names), len(templates)).mean(dim=1)
-
-        probs = logits.softmax(dim=1)
-        print(f"\n{name} prompt 结果:")
-        for c, p in zip(class_names, probs[0]):
-            print(f"  {c}: {p.item():.4f}")
+            probs = logits.softmax(dim=0)
+            print(f"\n{name} prompt 结果:")
+            for c, p in zip(class_names, probs):
+                print(f"  {c}: {p.item():.4f}")
+        else:
+            probs = logits.softmax(dim=1)
+            print(f"\n{name} prompt 结果:")
+            for c, p in zip(class_names, probs[0]):
+                print(f"  {c}: {p.item():.4f}")
 
 
 # ============================================================
@@ -341,6 +352,6 @@ def demo_prompt_engineering():
 if __name__ == "__main__":
     # demo_clip_embeddings()
     # demo_zero_shot_classification()
-    demo_feature_extraction()
+    # demo_feature_extraction()
     # demo_similarity_matrix()
-    # demo_prompt_engineering()
+    demo_prompt_engineering()
