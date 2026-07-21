@@ -189,6 +189,7 @@ def demo_blip_vit_run():
     print("************************************************")
 # ============================================================
 # 三、LLaVA 中的 ViT
+# LLaVA 使用的是 OpenAI 预训练并开源的 CLIP-ViT 模型，直接拿来就用，参数冻结，不做任何微调。
 # ============================================================
 
 def demo_llava_vit():
@@ -213,15 +214,17 @@ def demo_llava_vit():
     
     try:
         model = LlavaForConditionalGeneration.from_pretrained(
-            model_name,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True,
+            model_name,                  # 模型名称或路径，这里是 "llava-hf/llava-1.5-7b-hf"
+            torch_dtype=torch.float32,   # 指定模型权重数据类型为 float32（单精度浮点数），保证兼容性但占用更多内存
+            low_cpu_mem_usage=True,      # 启用低 CPU 内存使用模式，分块加载模型以减少内存峰值占用
         )
         
         print(f"模型: {model_name}")
         
         # 视觉编码器（使用 CLIP ViT）
         print(f"\n视觉编码器 (CLIP ViT):")
+        # 获取视觉编码器（Vision Tower），这是 LLaVA 中用于处理图像的 ViT 组件
+        # vision_tower 通常是一个预训练的 CLIP ViT 模型，负责将图像转换为视觉 token
         vision_tower = model.vision_tower
         print(f"  类型: {type(vision_tower).__name__}")
         print(f"  内部模型: {type(vision_tower.vision_tower).__name__}")
@@ -357,9 +360,9 @@ if __name__ == "__main__":
     # demo_clip_vit()
     # demo_blip_vit()
     # demo_blip_vit_run()
-    # demo_llava_vit()
+    demo_llava_vit()
     # demo_vit_role_summary()
-    demo_practical_comparison()
+    # demo_practical_comparison()
     
     # print("\n" + "=" * 60)
     # print("总结")
