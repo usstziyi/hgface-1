@@ -46,6 +46,10 @@ def demo_clip_embeddings():
     with torch.no_grad():
         outputs = model(**inputs)
 
+    # logits_per_image 和 logits_per_text 互为转置
+    outputs.logits_per_image  # [1, 2] 图像对两个文本的匹配分数
+    outputs.logits_per_text   # [2, 1] 两个文本对图像的匹配分数（转置）
+
     # 图像嵌入 [1, 512]
     image_embeds = outputs.image_embeds
     print(f"图像嵌入 shape: {image_embeds.shape}")  # [1, 512]
@@ -55,12 +59,15 @@ def demo_clip_embeddings():
     text_embeds = outputs.text_embeds
     print(f"文本嵌入 shape: {text_embeds.shape}")  # [2, 512]
 
+    # outputs.image_embeds 和 outputs.text_embeds 已经是 L2 归一化后的向量。
+
     # 计算余弦相似度
     similarity = F.cosine_similarity(image_embeds, text_embeds)
     print(f"\n图像与 'a photo of a cat' 相似度: {similarity[0].item():.4f}")
     print(f"图像与 'a photo of a dog' 相似度: {similarity[1].item():.4f}")
 
-    # 归一化后的点积 = 余弦相似度
+    # 1.归一化
+    # 2.点积 = 余弦相似度
     # CLIP 的 logits 就是这个相似度乘以温度系数
     print(f"\n模型输出的 logits_per_image: {outputs.logits_per_image}")
     print(f"模型输出的 logits_per_text: {outputs.logits_per_text}")
@@ -79,11 +86,13 @@ def demo_zero_shot_classification():
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     # 多张图像
-    urls = [
-        "http://images.cocodataset.org/val2017/000000039769.jpg",  # 猫
-        "http://images.cocodataset.org/val2017/000000084327.jpg",  # 街道
+    import os
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    image_files = [
+        os.path.join(data_dir, "cat.jpg"),
+        os.path.join(data_dir, "dog.png"),
     ]
-    images = [Image.open(requests.get(url, stream=True).raw) for url in urls]
+    images = [Image.open(image_file) for image_file in image_files]
 
     # 类别描述（可以用自然语言！）
     candidate_labels = [
@@ -102,19 +111,55 @@ def demo_zero_shot_classification():
         padding=True
     )
 
+    """inputs
+    # 图像编码器内部
+    pixel_values          # [batch, 3, 224, 224] 原始像素
+        ↓
+    patch_embedding       # 卷积层：将图像切成 patch 并嵌入
+        ↓
+    position_embedding    # 添加位置编码
+        ↓
+    transformer_layers    # Transformer 处理
+        ↓
+    image_embeds          # [batch, 512] 最终嵌入
+
+    # 文本编码器内部
+    input_ids             # [batch, seq_len] token 索引
+        ↓
+    token_embedding       # Embedding 查表：ID → 向量
+        ↓
+    position_embedding    # 添加位置编码
+        ↓
+    transformer_layers    # Transformer 处理
+        ↓
+    text_embeds           # [batch, 512] 最终嵌入
+    """
+
     with torch.no_grad():
         outputs = model(**inputs)
 
+    """ outputs
+    dict_keys([
+        'logits_per_image',    # 图像对文本的匹配分数
+        'logits_per_text',     # 文本对图像的匹配分数
+        'text_embeds',         # 文本嵌入向量
+        'image_embeds',        # 图像嵌入向量
+        'text_model_output',   # 文本编码器的完整输出
+        'vision_model_output'  # 图像编码器的完整输出
+    ])
+    """
+
     # logits_per_image: [num_images, num_labels]
-    logits_per_image = outputs.logits_per_image
-    probs = logits_per_image.softmax(dim=1)
+    logits_per_image = outputs.logits_per_image # [2, 5]
+    probs = logits_per_image.softmax(dim=1) # [2, 5]
 
     print(f"logits_per_image shape: {logits_per_image.shape}")  # [2, 5]
 
-    for i, (url, prob) in enumerate(zip(urls, probs)):
-        print(f"\n图像 {i+1}: {url}")
+    for i, (image_file, prob) in enumerate(zip(image_files, probs)):
+        print(f"\n图像 {i+1}: {image_file}")
         # 排序显示
         sorted_indices = prob.argsort(descending=True)
+        # rank=排名，idx=原始索引(idx)
         for rank, idx in enumerate(sorted_indices):
             label = candidate_labels[idx]
             score = prob[idx].item()
@@ -291,8 +336,8 @@ def demo_prompt_engineering():
 # ============================================================
 
 if __name__ == "__main__":
-    demo_clip_embedding()
+    # demo_clip_embeddings()
     demo_zero_shot_classification()
-    demo_feature_extraction()
-    demo_similarity_matrix()
-    demo_prompt_engineering()
+    # demo_feature_extraction()
+    # demo_similarity_matrix()
+    # demo_prompt_engineering()
