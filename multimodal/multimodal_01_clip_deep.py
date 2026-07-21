@@ -184,6 +184,7 @@ def demo_feature_extraction():
     # 方法 1：通过 processor + model
     inputs = processor(images=image, return_tensors="pt")
     with torch.no_grad():
+        # 仅提取图像特征
         image_features = model.get_image_features(**inputs)
     print(f"图像特征 shape: {image_features.shape}")  # [1, 512]
 
@@ -337,7 +338,7 @@ def demo_prompt_engineering():
 
 if __name__ == "__main__":
     # demo_clip_embeddings()
-    demo_zero_shot_classification()
-    # demo_feature_extraction()
+    # demo_zero_shot_classification()
+    demo_feature_extraction()
     # demo_similarity_matrix()
     # demo_prompt_engineering()
