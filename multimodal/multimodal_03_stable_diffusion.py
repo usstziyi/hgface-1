@@ -112,10 +112,13 @@ def demo_pipeline_internals():
     latent_shape = (1, 4, 512 // vae_scale_factor, 512 // vae_scale_factor)
     print(f"潜空间 shape: {latent_shape}")  # [1, 4, 64, 64]
     # 4 = 潜空间通道数（远小于 RGB 的 3 通道在像素空间的表示）
+    # "远小于"指的是总数据量，不是通道数
+    # 像素空间：512 × 512 × 3 = 786,432 个数值
+    # 潜空间：64 × 64 × 4 = 16,384 个数值
     # 64x64 = 512/8 x 512/8
 
     latents = torch.randn(latent_shape)
-    print(f"初始噪声 latents shape: {latents.shape}")
+    print(f"初始潜空间的噪声 latents shape: {latents.shape}") # [1, 4, 64, 64]
 
     # 3. 去噪过程
     print("\n--- Step 3: 去噪过程 ---")
@@ -249,9 +252,11 @@ def demo_inpainting():
     import requests
 
     pipe = StableDiffusionInpaintPipeline.from_pretrained(
-        "runwayml/stable-diffusion-v1-5-inpainting",
+        "stable-diffusion-v1-5/stable-diffusion-inpainting",
         torch_dtype=torch.float32,
     )
+
+    pipe.enable_attention_slicing()
 
     # 加载图像
     url = "http://images.cocodataset.org/val2017/000000039769.jpg"
@@ -260,7 +265,7 @@ def demo_inpainting():
 
     # 创建 mask（白色区域会被替换）
     # 这里创建一个简单的矩形 mask
-    mask = Image.new("L", (512, 512), 0)  # 全黑
+    mask = Image.new("L", (512, 512), 0)  # "L" 表示灰度模式 (Luminance)，512x512 全黑（值为0）
     # 在中间画一个白色矩形
     from PIL import ImageDraw
     draw = ImageDraw.Draw(mask)
@@ -289,8 +294,8 @@ if __name__ == "__main__":
     print("注意：Stable Diffusion 需要较多内存（建议 8GB+ GPU 或 16GB+ 内存）")
     print("Mac 用户可以取消注释 pipe.enable_attention_slicing() 减少内存占用\n")
 
-    demo_basic_text_to_image()
+    # demo_basic_text_to_image()
     # demo_pipeline_internals()
     # demo_parameter_tuning()
     # demo_image_to_image()
-    # demo_inpainting()
+    demo_inpainting()
