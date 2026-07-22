@@ -13,6 +13,7 @@ dependencies = [
     "requests>=2.31.0",
     "torchvision>=0.28.0",
     "matplotlib>=3.10.9",
+    "diffusers>=0.39.0",
 ]
 
 [dependency-groups]

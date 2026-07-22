@@ -31,13 +31,21 @@ def demo_basic_text_to_image():
 
     from diffusers import StableDiffusionPipeline
 
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
     # 加载 pipeline（首次会下载模型，约 4GB）
     pipe = StableDiffusionPipeline.from_pretrained(
         "runwayml/stable-diffusion-v1-5",
         torch_dtype=torch.float32,  # Mac 用 float32，有 CUDA 可用 float16
     )
     # Mac 用户如果内存不足，可以启用 CPU offload
-    # pipe.enable_attention_slicing()
+    pipe.enable_attention_slicing()
 
     # 查看 pipeline 包含的组件
     print("Pipeline 组件:")
@@ -59,9 +67,9 @@ def demo_basic_text_to_image():
         width=512,
         height=512,
     ).images[0]
-
-    image.save("./output_sd_basic.png")
-    print(f"图像已保存到 ./output_sd_basic.png, 尺寸: {image.size}")
+    
+    image.save("./data/output_sd_basic.png")
+    print(f"图像已保存到 ./data/output_sd_basic.png, 尺寸: {image.size}")
 
 
 # ============================================================
@@ -282,7 +290,7 @@ if __name__ == "__main__":
     print("Mac 用户可以取消注释 pipe.enable_attention_slicing() 减少内存占用\n")
 
     demo_basic_text_to_image()
-    demo_pipeline_internals()
-    demo_parameter_tuning()
-    demo_image_to_image()
-    demo_inpainting()
+    # demo_pipeline_internals()
+    # demo_parameter_tuning()
+    # demo_image_to_image()
+    # demo_inpainting()
