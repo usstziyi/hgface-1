@@ -200,23 +200,52 @@ def demo_model_structure():
     # 查看 config
     config = model.config
     print(f"\n关键配置:")
-    print(f"  图像尺寸: {config.image_size}")
-    print(f"  patch 尺寸: {config.patch_size}")
-    print(f"  隐藏层维度: {config.hidden_size}")
-    print(f"  注意力头数: {config.num_attention_heads}")
-    print(f"  编码器层数: {config.num_hidden_layers}")
-    print(f"  词表大小: {config.vocab_size}")
+    print(f"  架构: {config.architectures}")
 
-    # 了解 vision encoder
-    print(f"\n视觉编码器:")
+    # 视觉编码器配置
+    print(f"\n视觉编码器 (vision_config):")
     vision_config = config.vision_config
     print(f"  模型类型: {vision_config.model_type}")
+    print(f"  图像尺寸: {vision_config.image_size}")
+    print(f"  patch 尺寸: {vision_config.patch_size}")
     print(f"  隐藏层维度: {vision_config.hidden_size}")
     print(f"  中间层维度: {vision_config.intermediate_size}")
     print(f"  层数: {vision_config.num_hidden_layers}")
     print(f"  注意力头数: {vision_config.num_attention_heads}")
 
+    # 文本编码器/解码器配置
+    print(f"\n文本编码器 (text_config):")
+    text_config = config.text_config
+    print(f"  模型类型: {text_config.model_type}")
+    print(f"  隐藏层维度: {text_config.hidden_size}")
+    print(f"  中间层维度: {text_config.intermediate_size}")
+    print(f"  最大位置嵌入: {text_config.max_position_embeddings}")
+    print(f"  层数: {text_config.num_hidden_layers}")
+    print(f"  注意力头数: {text_config.num_attention_heads}")
+    print(f"  词汇表大小: {text_config.vocab_size}")
+    print(f"  隐藏层激活函数: {text_config.hidden_act}")
+    print(f"  注意力概率 dropout: {text_config.attention_probs_dropout_prob}")
+    print(f"  隐藏层 dropout: {text_config.hidden_dropout_prob}")
 
+def demo_text_config():
+    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+    
+    config = model.config
+    text_config = config.text_config
+    
+    # 查看 text_config 的完整内容
+    print("text_config 完整配置:")
+    print(text_config)
+    
+    # 查看是否有单独的 encoder/decoder config
+    print(f"\n是否有 encoder 配置: {hasattr(config, 'encoder')}")
+    print(f"是否有 decoder 配置: {hasattr(config, 'decoder')}")
+    
+    # 查看模型结构中的文本模块
+    print(f"\n文本相关模块:")
+    for name, module in model.named_children():
+        if 'text' in name.lower():
+            print(f"  {name}: {type(module).__name__}")
 # ============================================================
 # 运行
 # ============================================================
@@ -225,5 +254,6 @@ if __name__ == "__main__":
     # demo_image_captioning()
     # demo_vqa()
     # demo_blip_large()
-    demo_batch_processing()
+    # demo_batch_processing()
     # demo_model_structure()
+    demo_text_config()
