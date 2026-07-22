@@ -34,23 +34,24 @@ def demo_image_captioning():
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
-    url = os.path.join(data_dir, "cat.jpg")
-    image = Image.open(url)
+    image_file = os.path.join(data_dir, "cat.jpg")
+    image = Image.open(image_file)
 
     # --- 无条件描述生成 ---
-    # 使用文本前缀引导生成
     inputs = processor(images=image, return_tensors="pt")
     generated_ids = model.generate(**inputs, max_length=50)
-    caption = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    caption = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
     print(f"无条件描述: {caption}")
+
 
     # --- 有条件描述生成 ---
     # 提供文本前缀，引导模型生成特定风格的描述
     text_prompt = "a photography of"
     inputs = processor(images=image, text=text_prompt, return_tensors="pt")
     generated_ids = model.generate(**inputs, max_length=50)
-    caption = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    caption = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
     print(f"条件描述 (前缀='{text_prompt}'): {caption}")
+
 
     # 尝试不同前缀
     for prompt in ["an image of", "a picture showing", "this image contains"]:
@@ -58,6 +59,7 @@ def demo_image_captioning():
         generated_ids = model.generate(**inputs, max_length=50)
         caption = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         print(f"条件描述 (前缀='{prompt}'): {caption}")
+    
 
     # --- 生成参数调优 ---
     print("\n--- 生成参数对比 ---")
@@ -73,8 +75,11 @@ def demo_image_captioning():
 
     # 采样（更多样化）
     ids_sample = model.generate(
-        **inputs, max_length=50,
-        do_sample=True, top_k=50, temperature=0.7
+        **inputs,                    # 输入张量（包含图像特征）
+        max_length=50,               # 生成文本的最大长度
+        do_sample=True,              # 启用采样模式（而非贪心搜索）
+        top_k=50,                    # 只从概率最高的前50个token中采样
+        temperature=0.7              # 温度参数，控制生成文本的随机性（越低越保守）
     )
     print(f"采样生成: {processor.batch_decode(ids_sample, skip_special_tokens=True)[0]}")
 
@@ -92,9 +97,8 @@ def demo_vqa():
     model = BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-capfilt-large")
     data_dir = os.path.join(os.path.dirname(__file__), "data")
 
-    data_dir = os.path.join(os.path.dirname(__file__), "data")
-    url = os.path.join(data_dir, "cat.jpg")
-    image = Image.open(url)
+    image_file = os.path.join(data_dir, "cat.jpg")
+    image = Image.open(image_file)
 
     # 不同类型的问题
     questions = [
@@ -131,9 +135,9 @@ def demo_blip_large():
         model = BlipForConditionalGeneration.from_pretrained(model_name)
         data_dir = os.path.join(os.path.dirname(__file__), "data")
         
-        
-        url = os.path.join(data_dir, "cat.jpg")
-        image = Image.open(url)
+
+        image_file = os.path.join(data_dir, "cat.jpg")
+        image = Image.open(image_file)
 
         inputs = processor(images=image, return_tensors="pt")
         generated_ids = model.generate(**inputs, max_length=50)
@@ -215,7 +219,7 @@ def demo_model_structure():
 
 if __name__ == "__main__":
     demo_image_captioning()
-    demo_vqa()
-    demo_blip_large()
-    demo_batch_processing()
-    demo_model_structure()
+    # demo_vqa()
+    # demo_blip_large()
+    # demo_batch_processing()
+    # demo_model_structure()
