@@ -95,8 +95,8 @@ def demo_vqa():
 
     processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-capfilt-large")
     model = BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-capfilt-large")
-    data_dir = os.path.join(os.path.dirname(__file__), "data")
 
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     image_file = os.path.join(data_dir, "cat.jpg")
     image = Image.open(image_file)
 
@@ -109,10 +109,13 @@ def demo_vqa():
         "what is in the background?",
     ]
 
-    for question in questions:
-        inputs = processor(images=image, text=question, return_tensors="pt")
-        generated_ids = model.generate(**inputs, max_length=20)
-        answer = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    # 批量处理版本
+    images = [image] * len(questions)  # 为每个问题重复图像
+    inputs = processor(images=images, text=questions, return_tensors="pt", padding=True)
+    generated_ids = model.generate(**inputs, max_length=20)
+    answers = processor.batch_decode(generated_ids, skip_special_tokens=True)
+
+    for question, answer in zip(questions, answers):
         print(f"Q: {question}")
         print(f"A: {answer}\n")
 
@@ -133,10 +136,9 @@ def demo_blip_large():
     ]:
         processor = BlipProcessor.from_pretrained(model_name)
         model = BlipForConditionalGeneration.from_pretrained(model_name)
-        data_dir = os.path.join(os.path.dirname(__file__), "data")
-        
 
-        image_file = os.path.join(data_dir, "cat.jpg")
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        image_file = os.path.join(data_dir, "light.png")
         image = Image.open(image_file)
 
         inputs = processor(images=image, return_tensors="pt")
@@ -162,17 +164,19 @@ def demo_batch_processing():
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
-    urls = [
+    image_files = [
         os.path.join(data_dir, "cat.jpg"),
         os.path.join(data_dir, "dog.png"),
+        os.path.join(data_dir, "light.png"),
     ]
-    images = [Image.open(url) for url in urls]
+    images = [Image.open(url) for url in image_files]
 
-    # 逐张处理（BLIP 不直接支持 batch generate）
-    for i, (url, image) in enumerate(zip(urls, images)):
-        inputs = processor(images=image, return_tensors="pt")
-        generated_ids = model.generate(**inputs, max_length=50)
-        caption = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    # 批量处理版本
+    inputs = processor(images=images, return_tensors="pt")
+    generated_ids = model.generate(**inputs, max_length=50)
+    captions = processor.batch_decode(generated_ids, skip_special_tokens=True)
+    
+    for i, caption in enumerate(captions):
         print(f"图像 {i+1}: {caption}")
 
 
@@ -218,8 +222,8 @@ def demo_model_structure():
 # ============================================================
 
 if __name__ == "__main__":
-    demo_image_captioning()
+    # demo_image_captioning()
     # demo_vqa()
     # demo_blip_large()
-    # demo_batch_processing()
+    demo_batch_processing()
     # demo_model_structure()
