@@ -29,6 +29,9 @@ def demo_waveform_basics():
 
     # 生成简单的正弦波（纯音）
     frequency = 440  # A4 音符，440Hz
+    # endpoint=False: 不包含结束值 duration，确保采样点数精确为 sample_rate * duration
+    # 这样每个采样点间隔为 1/sample_rate，最后一个采样点在 duration - 1/sample_rate 处
+    # 如果 endpoint=True，会包含 duration，导致采样点数多一个或间隔略有不同
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     waveform = 0.5 * np.sin(2 * np.pi * frequency * t)
 
@@ -388,7 +391,7 @@ def demo_tts_architecture():
 
 if __name__ == "__main__":
     demo_waveform_basics()
-    demo_spectrogram()
-    demo_audio_io()
-    demo_audio_features()
-    demo_tts_architecture()
+    # demo_spectrogram()
+    # demo_audio_io()
+    # demo_audio_features()
+    # demo_tts_architecture()
