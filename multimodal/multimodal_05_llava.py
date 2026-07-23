@@ -44,7 +44,9 @@ def demo_llava_basic():
     model = LlavaForConditionalGeneration.from_pretrained(
         model_id,
         torch_dtype=torch.float32,
-        low_cpu_mem_usage=True,
+        # 使用低CPU内存加载模式，通过分片加载和内存映射减少内存占用
+        # 适合内存有限的设备，但加载速度会稍慢
+        low_cpu_mem_usage=True, # 只在模型加载时生效，不影响推理
     )
 
     # 加载图像
@@ -309,8 +311,8 @@ if __name__ == "__main__":
     print("注意：LLaVA-1.5-7B 需要约 14GB 内存/显存")
     print("如果内存不足，可以使用 llava-hf/llava-1.5-7b-hf 的量化版本\n")
 
-    demo_llava_basic()
-    demo_multi_turn_conversation()
-    demo_various_tasks()
+    # demo_llava_basic()
+    # demo_multi_turn_conversation()
+    # demo_various_tasks()
     demo_model_architecture()
-    demo_model_comparison()
+    # demo_model_comparison()
