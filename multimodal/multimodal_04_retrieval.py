@@ -210,15 +210,15 @@ def demo_evaluation():
     # 每个图像有一个对应的文本描述（ground truth）
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     eval_data = [
-        (os.path.join(data_dir, "cat.jpg"), "cats on couch"),
-        (os.path.join(data_dir, "dog.png"), "city street scene"),
+        (os.path.join(data_dir, "cat.jpg"), "cats on a couch"),
+        (os.path.join(data_dir, "dog.png"), "a dog sticking out its tongue"),
     ]
 
     # 构建索引
     index = ImageIndex(model, processor)
-    for url, desc in eval_data:
-        image = Image.open(url)
-        index.add_image(image, metadata={"description": desc, "url": url})
+    for image_path, desc in eval_data:
+        image = Image.open(image_path)
+        index.add_image(image, metadata={"description": desc})
 
     # 添加干扰图像
     for i in range(18):
@@ -236,11 +236,11 @@ def demo_evaluation():
     print("\nRecall@K 评估:")
     for k in [1, 3, 5, 10]:
         correct = 0
-        for url, gt_desc in eval_data:
+        for file_path, gt_desc in eval_data:
             results = index.search_by_text(gt_desc, top_k=k)
             # 检查 ground truth 是否在前 K 个结果中
             for r in results:
-                if r["metadata"]["url"] == url:
+                if r["metadata"]["description"] == gt_desc:
                     correct += 1
                     break
         recall = correct / len(eval_data)
@@ -289,6 +289,24 @@ def demo_scaling_tips():
    └──────────┘     └──────────┘
 """)
 
+
+"""
+    # 1. 创建阶段：确定搜索策略和数据结构
+    faiss_index = faiss.IndexFlatIP(512)  
+    # 此时：空的，但知道"我要用内积搜索512维向量"
+
+    # 2. 填充阶段：存储数据
+    faiss_index.add(vectors)  
+    # 此时：成为"数据容器"，ntotal = 1000
+
+    # 3. 查询阶段：执行搜索
+    distances, indices = faiss_index.search(query, k=5)
+    # 此时：扮演"搜索引擎"角色
+
+    # 4. 持久化阶段：甚至可以保存到磁盘
+    faiss.write_index(faiss_index, "index.faiss")
+"""
+
     # 演示 FAISS 用法（如果安装了的话）
     try:
         import faiss
@@ -300,14 +318,17 @@ def demo_scaling_tips():
         # 创建索引
         faiss_index = faiss.IndexFlatIP(dim)  # 内积（等价于余弦相似度，如果向量已归一化）
 
-        # 添加向量
+        # 生成 1000×512 的随机正态分布向量，转为float32
         vectors = np.random.randn(num_vectors, dim).astype("float32")
+        # 关键操作！沿每个向量(axis=1)计算L2范数并归一化
         vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        # 添加向量到索引
         faiss_index.add(vectors)
         print(f"FAISS 索引: {faiss_index.ntotal} 个向量, 维度 {dim}")
 
         # 检索
         query = np.random.randn(1, dim).astype("float32")
+        # 查询向量也必须归一化
         query = query / np.linalg.norm(query)
         distances, indices = faiss_index.search(query, k=5)
         print(f"Top-5 检索结果索引: {indices[0]}")
@@ -322,8 +343,8 @@ def demo_scaling_tips():
 # ============================================================
 
 if __name__ == "__main__":
-    index = demo_build_index()
+    # index = demo_build_index()
     # demo_text_to_image_search(index)
-    demo_image_to_image_search(index)
-    # demo_evaluation()
+    # demo_image_to_image_search(index)
+    demo_evaluation()
     # demo_scaling_tips()
