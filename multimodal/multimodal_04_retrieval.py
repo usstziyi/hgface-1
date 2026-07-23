@@ -16,6 +16,7 @@ from PIL import Image
 import requests
 import numpy as np
 import time
+import os
 
 # ============================================================
 # 一、构建图像索引
@@ -37,16 +38,17 @@ class ImageIndex:
     def add_image(self, image, metadata=None):
         """添加单张图像到索引"""
         inputs = self.processor(images=image, return_tensors="pt")
-        features = self.model.get_image_features(**inputs)
+        features = self.model.get_image_features(**inputs).pooler_output  # 获取投影后的512维特征
+        print(f"features.shape: {features.shape}")
         features = F.normalize(features, dim=-1)
-        self.embeddings.append(features.squeeze().cpu())
+        self.embeddings.append(features.cpu())  # 保持 [1, 512] 的2D张量
         self.metadata.append(metadata or {})
 
     @torch.no_grad()
     def add_images_batch(self, images, metadata_list=None):
         """批量添加图像"""
         inputs = self.processor(images=images, return_tensors="pt")
-        features = self.model.get_image_features(**inputs)
+        features = self.model.get_image_features(**inputs).pooler_output
         features = F.normalize(features, dim=-1)
         self.embeddings.append(features.cpu())
         if metadata_list:
@@ -61,14 +63,18 @@ class ImageIndex:
     def search_by_text(self, query, top_k=5):
         """文本搜索图像"""
         inputs = self.processor(text=[query], return_tensors="pt")
-        text_features = self.model.get_text_features(**inputs)
-        text_features = F.normalize(text_features, dim=-1)
+        text_features = self.model.get_text_features(**inputs).pooler_output
+        print(f"text_features.shape: {text_features.shape}")
+        text_features = F.normalize(text_features, dim=-1) # L2 归一化
 
         # 计算相似度
         similarities = (text_features @ self.index.T).squeeze()  # [N]
-        top_indices = similarities.topk(top_k).indices
+        # 限制 top_k 不能超过索引大小
+        top_k = min(top_k, len(self.metadata))
+        top_indices = similarities.topk(top_k).indices  # 获取相似度最高的 top_k 个结果的索引
 
         results = []
+        # idx 是索引
         for idx in top_indices:
             results.append({
                 "index": idx.item(),
@@ -81,10 +87,12 @@ class ImageIndex:
     def search_by_image(self, query_image, top_k=5):
         """图像搜索图像"""
         inputs = self.processor(images=query_image, return_tensors="pt")
-        query_features = self.model.get_image_features(**inputs)
+        query_features = self.model.get_image_features(**inputs).pooler_output
         query_features = F.normalize(query_features, dim=-1)
 
         similarities = (query_features @ self.index.T).squeeze()
+        # 限制 top_k 不能超过索引大小
+        top_k = min(top_k, len(self.metadata))
         top_indices = similarities.topk(top_k).indices
 
         results = []
@@ -111,21 +119,21 @@ def demo_build_index():
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     image_data = [
         {
-            "url": os.path.join(data_dir, "cat.jpg"),
+            "image_path": os.path.join(data_dir, "cat.jpg"),
             "description": "cats on a couch",
             "id": "img_001",
         },
         {
-            "url": os.path.join(data_dir, "dog.png"),
-            "description": "city street",
+            "image_path": os.path.join(data_dir, "dog.png"),
+            "description": "a dog sticking out its tongue",
             "id": "img_002",
         },
     ]
 
-    # 下载并添加图像
+    # 添加图像
     for data in image_data:
         print(f"  添加图像: {data['description']}...")
-        image = Image.open(data["url"])
+        image = Image.open(data["image_path"])
         index.add_image(image, metadata=data)
 
     # 也可以用多张随机图像模拟大规模数据
@@ -177,6 +185,7 @@ def demo_image_to_image_search(index):
     print("=" * 60)
 
     # 用一张猫的图片搜索相似图像
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     query_image = Image.open(os.path.join(data_dir, "cat.jpg"))
 
     print(f"查询图像: {os.path.join(data_dir, 'cat.jpg')}")
@@ -314,7 +323,7 @@ def demo_scaling_tips():
 
 if __name__ == "__main__":
     index = demo_build_index()
-    demo_text_to_image_search(index)
+    # demo_text_to_image_search(index)
     demo_image_to_image_search(index)
-    demo_evaluation()
-    demo_scaling_tips()
+    # demo_evaluation()
+    # demo_scaling_tips()

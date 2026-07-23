@@ -298,4 +298,4 @@ if __name__ == "__main__":
     # demo_pipeline_internals()
     # demo_parameter_tuning()
     # demo_image_to_image()
-    demo_inpainting()
+    # demo_inpainting()

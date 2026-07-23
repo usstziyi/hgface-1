@@ -17,6 +17,7 @@ from transformers import CLIPModel, CLIPProcessor, CLIPTokenizerFast
 from PIL import Image
 import requests
 import numpy as np
+import os
 
 # ============================================================
 # 一、CLIP 基础：理解图文嵌入
@@ -186,6 +187,7 @@ def demo_feature_extraction():
     with torch.no_grad():
         # 仅提取图像特征
         outputs = model.get_image_features(**inputs)
+    print(type(outputs))
     image_features = outputs.pooler_output # 取 CLS token 的最后一层特征
     print(f"图像特征 shape: {image_features.shape}")  # [1, 512]
 
@@ -352,6 +354,6 @@ def demo_prompt_engineering():
 if __name__ == "__main__":
     # demo_clip_embeddings()
     # demo_zero_shot_classification()
-    # demo_feature_extraction()
+    demo_feature_extraction()
     # demo_similarity_matrix()
-    demo_prompt_engineering()
+    # demo_prompt_engineering()
