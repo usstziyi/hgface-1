@@ -251,6 +251,7 @@ def demo_audio_io():
         import soundfile as sf
 
         # 保存
+        # 22050 Hz 的采样率，能记录的最高频率是 11025 Hz。
         sample_rate = 22050
         duration = 1.0
         t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
@@ -295,17 +296,26 @@ def demo_audio_features():
     )
 
     signal_tensor = torch.tensor(signal, dtype=torch.float32)
+    print(f"原始信号 shape: {signal_tensor.shape}")
+
 
     try:
         import torchaudio
 
         # 1. MFCC (Mel-Frequency Cepstral Coefficients)
         # 语音识别和 TTS 的重要特征
+        # 原始音频波形 → 短时傅里叶变换 (STFT) → 幅度谱 → Mel 滤波器组 → Mel 频谱图 → 取对数 → 离散余弦变换 (DCT) → MFCC
         mfcc_transform = torchaudio.transforms.MFCC(
-            sample_rate=sample_rate,
-            n_mfcc=13,
-            melkwargs={"n_fft": 400, "hop_length": 160, "n_mels": 80},
+            sample_rate=sample_rate,      # 采样率，音频的采样频率
+            n_mfcc=13,                    # MFCC 系数数量，通常取 13 个
+            melkwargs={                   # 传递给 MelSpectrogram 的参数字典
+                "n_fft": 400,             # FFT 窗口大小，决定频率分辨率
+                "hop_length": 160,        # 帧移，相邻帧之间的采样点数
+                "n_mels": 80              # Mel 滤波器数量，决定 Mel 频率 bin 数
+            },
         )
+        # 使用 MFCC 变换提取音频特征
+        # 将原始音频信号转换为 MFCC 系数矩阵
         mfcc = mfcc_transform(signal_tensor)
         print(f"MFCC shape: {mfcc.shape}")
         # [13, num_frames]
@@ -327,7 +337,7 @@ def demo_audio_features():
         # 3. 音频重采样
         resampler = torchaudio.transforms.Resample(
             orig_freq=16000,
-            new_freq=22050,
+            new_freq=22050, # 插值
         )
         resampled = resampler(signal_tensor)
         print(f"\n重采样:")
@@ -402,7 +412,7 @@ def demo_tts_architecture():
 # ============================================================
 
 if __name__ == "__main__":
-    demo_waveform_basics()
+    # demo_waveform_basics()
     # demo_spectrogram()
     demo_audio_io()
     # demo_audio_features()
