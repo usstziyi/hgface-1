@@ -135,18 +135,23 @@ def demo_spectrogram():
         # Mel 声谱图
         n_mels = 80
         mel_transform = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sample_rate,
-            n_fft=n_fft,
-            hop_length=hop_length,
-            n_mels=n_mels,
+            sample_rate=sample_rate,      # 采样率
+            n_fft=n_fft,                  # FFT 窗口大小
+            hop_length=hop_length,        # 帧移（相邻帧之间的采样点数）
+            n_mels=n_mels,                # Mel 滤波器数量
         )
         mel_spectrogram = mel_transform(waveform_tensor)
         print(f"Mel 声谱图 shape: {mel_spectrogram.shape}")
         # [n_mels, num_frames]
 
         # 对数 Mel 声谱图（常用）
+        # 人耳对声音响度的感知不是线性的，而是近似对数关系：
+        # 声音能量增大 10 倍，人耳感觉响度只增大了约 1 倍
+        # 所以直接用能量值，与人耳的实际听觉体验不匹配
+        # 取对数后，数值的变化幅度与人耳感知的响度变化更一致。
         log_mel = torch.log(mel_spectrogram + 1e-9)
         print(f"对数 Mel 声谱图 shape: {log_mel.shape}")
+        print(log_mel.min(), log_mel.max())
 
         print(f"\n参数说明:")
         print(f"  n_fft: {n_fft} (FFT 窗口大小)")
@@ -195,43 +200,50 @@ def demo_audio_io():
         sample_rate = 22050
         duration = 1.0
         t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-        waveform = (0.5 * np.sin(2 * np.pi * 440 * t) * 32767).astype(np.int16)
+        # 转为 16 位整数（WAV 格式要求）
+        # waveform = (0.5 * np.sin(2 * np.pi * 440 * t) * 32767).astype(np.int16) # numpy int16
+        # 生成 480Hz 和 620Hz 的正弦波的叠加
+        # 国际电信联盟（ITU，International Telecommunication Union） 的标准，主要用于电话忙音。
+        waveform = (0.5 * (np.sin(2 * np.pi * 480 * t) + np.sin(2 * np.pi * 620 * t)) * 32767).astype(np.int16)
 
         # 保存
-        wavfile.write("./output_tone.wav", sample_rate, waveform)
-        print(f"  已保存: ./output_tone.wav")
+        wavfile.write("./TTS/data/output_tone.wav", sample_rate, waveform)
+        print(f"  已保存: ./TTS/data/output_tone.wav")
 
         # 读取
-        sr, data = wavfile.read("./output_tone.wav")
+        # wavfile.read() 返回两个值：
+        # sr: 采样率（sample rate），表示每秒采样次数，单位为 Hz
+        # data: 音频数据，是一个 numpy 数组，包含所有采样点的振幅值
+        sr, data = wavfile.read("./TTS/data/output_tone.wav")
         print(f"  读取: 采样率={sr}, 长度={len(data)}, dtype={data.dtype}")
 
     except ImportError:
         print("  需要安装 scipy: pip install scipy")
 
-    # 方法 2：使用 torchaudio
-    print("\n--- 方法 2: torchaudio ---")
-    try:
-        import torchaudio
+    # # 方法 2：使用 torchaudio
+    # print("\n--- 方法 2: torchaudio ---")
+    # try:
+    #     import torchaudio
 
-        # 生成音频（float32，范围 [-1, 1]）
-        sample_rate = 22050
-        duration = 1.0
-        t = torch.linspace(0, duration, int(sample_rate * duration))
-        waveform = (0.5 * torch.sin(2 * np.pi * 440 * t)).unsqueeze(0)
-        # shape: [1, num_samples] (channels, samples)
+    #     # 生成音频（float32，范围 [-1, 1]）
+    #     sample_rate = 22050
+    #     duration = 1.0
+    #     t = torch.linspace(0, duration, int(sample_rate * duration))
+    #     waveform = (0.5 * torch.sin(2 * np.pi * 440 * t)).unsqueeze(0) # torch
+    #     # shape: [1, num_samples] (channels, samples)
 
-        # 保存
-        torchaudio.save("./output_tone_torch.wav", waveform, sample_rate)
-        print(f"  已保存: ./output_tone_torch.wav")
+    #     # 保存
+    #     torchaudio.save("./TTS/data/output_tone_torch.wav", waveform, sample_rate)
+    #     print(f"  已保存: ./TTS/data/output_tone_torch.wav")
 
-        # 读取
-        data, sr = torchaudio.load("./output_tone_tone.wav")
-        print(f"  读取: 采样率={sr}, shape={data.shape}")
+    #     # 读取
+    #     data, sr = torchaudio.load("./TTS/data/output_tone_torch.wav")
+    #     print(f"  读取: 采样率={sr}, shape={data.shape}")
 
-    except ImportError:
-        print("  需要安装 torchaudio: pip install torchaudio")
-    except Exception as e:
-        print(f"  注意: {e}")
+    # except ImportError:
+    #     print("  需要安装 torchaudio: pip install torchaudio")
+    # except Exception as e:
+    #     print(f"  注意: {e}")
 
     # 方法 3：使用 soundfile
     print("\n--- 方法 3: soundfile ---")
@@ -242,13 +254,13 @@ def demo_audio_io():
         sample_rate = 22050
         duration = 1.0
         t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-        waveform = 0.5 * np.sin(2 * np.pi * 440 * t)
+        waveform = 0.5 * np.sin(2 * np.pi * 1000 * t) # numpy float64
 
-        sf.write("./output_tone_sf.wav", waveform, sample_rate)
-        print(f"  已保存: ./output_tone_sf.wav")
+        sf.write("./TTS/data/output_tone_sf.wav", waveform, sample_rate)
+        print(f"  已保存: ./TTS/data/output_tone_sf.wav")
 
         # 读取
-        data, sr = sf.read("./output_tone_sf.wav")
+        data, sr = sf.read("./TTS/data/output_tone_sf.wav")
         print(f"  读取: 采样率={sr}, 长度={len(data)}")
 
     except ImportError:
@@ -392,6 +404,6 @@ def demo_tts_architecture():
 if __name__ == "__main__":
     demo_waveform_basics()
     # demo_spectrogram()
-    # demo_audio_io()
+    demo_audio_io()
     # demo_audio_features()
     # demo_tts_architecture()
